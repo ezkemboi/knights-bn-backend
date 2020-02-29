@@ -6,13 +6,19 @@ import isObjectEmpty from '../utils/isObjectEmpty';
 import oneWayTripHelper from '../helpers/oneWayTrip';
 import Sequelize from 'sequelize';
 import { echoNotification } from '../helpers/notificationSender';
+import emiter from 'events';
+
 
 const {
   Op, where, cast, col
 } = Sequelize;
 import lodash from 'lodash'
 
+import {editEventHandler} from '../events/editEvent';
+import express, { request } from 'express';
 environment.config();
+const app = express();
+
 export default class usersController {
   
   static async createOneWayTrip(req, res) {
@@ -298,7 +304,7 @@ export default class usersController {
     if(requester.lineManager === null) return res.status(400).json({status:404, error:'Update your profile to include your line manager email'})
     const {lineManager} = requester;
     const manager = await models.User.findOne({where:{email:lineManager}});
-    if(manager === 'null') return res.status(404).json({status:404, error:'It seems your manager is not avilable in the system'})
+    if(manager === null) return res.status(404).json({status:404, error:'It seems your manager is not avilable in the system'})
     req.body.requesterId = req.user.id;
     req.body.managerId = manager.id;
     req.body.status = 'pending';
@@ -309,4 +315,25 @@ export default class usersController {
    }
   }
   
+  static async getSingleRequest(req,res){
+  const requestId = req.params.id;
+  const myRequest = await  models.Request.findOne({where:{id:requestId}});
+  if(myRequest === null) return res.status(404).json({status:404, error:'Request does not found'});
+  return res.status(200).json({status:200, data:myRequest});
+  }
+
+  static async editRequest(req,res){
+    const requestId = req.params.id;
+    const {status, ...rest} =req.body;
+   models.Request.update(rest,{where:{id:requestId}})
+   .then(()=> models.Request.findOne({where:{id:requestId}}))
+   .then((myRequest)=>{
+    const FireEvent = new emiter.EventEmitter();
+    FireEvent.on('editEvent',editEventHandler);
+    const {requesterId,managerId,reason}= myRequest;
+    FireEvent.emit('editEvent',{userId:requesterId,managerId:managerId,title:reason,id:requestId,res});
+    FireEvent.removeListener('editEvent',editEventHandler);
+   })
+  }
+
 }

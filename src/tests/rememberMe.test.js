@@ -8,7 +8,7 @@ chai.use(chaiHttp);
 chai.should();
 
 const remembered = () => {
-  describe('UserProfile settings ', () => {
+  describe('Rememember me ', () => {
     before((done) => {
       chai
         .request(app)

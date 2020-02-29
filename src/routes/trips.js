@@ -278,6 +278,112 @@ import validateOneWayTrip from '../middlewares/validateOneWay';
       }
     }
  */
+/**
+ * @swagger
+ *   "/trips/view/request/{id}": {
+      "get": {
+        "summary": "view single request",
+        "tags": [
+          "Trips"
+        ],
+        "operationId": "view-request",
+        "deprecated": false,
+        "produces": [
+          "application/json"
+        ],
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [
+           {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "description": "request id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {}
+          }
+        }
+      }
+    }
+ */
+
+ /**
+ * @swagger
+ *   "/trips/edit/request/{id}": {
+      "patch": {
+        "summary": "edit single request",
+        "tags": [
+          "Trips"
+        ],
+        "operationId": "edit-request",
+        "deprecated": false,
+        "produces": [
+          "application/json"
+        ],
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "description": "request id"
+          },
+          {
+            "name": "origin",
+            "in": "formData",
+            "type": "string",
+          },
+          {
+            "name": "destination",
+            "in": "formData",
+            "type": "string",
+          },
+          {
+            "name": "departureDate",
+            "in": "formData",
+            "type": "string",
+            "value": "YYYY-MM-DD"
+          },
+          {
+            "name": "returnDate",
+            "in": "formData",
+            "type": "string",
+            "value": "YYYY-MM-DD"
+          },
+          {
+            "name": "accommodation",
+            "in": "formData",
+            "type": "string",
+          },
+          {
+            "name": "reason",
+            "in": "formData",
+            "type": "string",
+          },
+          {
+            "name": "passportNumber",
+            "in": "formData",
+            "type": "string",
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {}
+          }
+        }
+      }
+    }
+ */
 
  /**
  * @swagger
@@ -331,6 +437,7 @@ import comment from '../controllers/comment.controller';
 import commentValidate from '../middlewares/newComment';
 import checkCommenterValidation from '../middlewares/commenter';
 import requestStatusController from '../controllers/notifications';
+import canEditMidleWare from '../middlewares/canEdit';
 
 import {
   validateRequestDate, validateCityDate, tripInformation, multicity, checkIfRequestExists
@@ -338,6 +445,12 @@ import {
 
 
 const router = express.Router();
+
+const {
+  editRequest,
+  getSingleRequest
+} = requestControllers;
+
 const {
   filterTrips
 } = requestsController;
@@ -351,6 +464,8 @@ router.get('/trips/pendingApproval', authCheck.auth, requestControllers.pendingA
 router.patch('/trips/reject', authCheck.auth, requestControllers.rejectRequest);
 router.post('/trips/request/multicity', authCheck.auth, validateRequestDate, validateCityDate, tripInformation, multicity, checkIfRequestExists, requestControllers.createMultiCityRequest);
 router.post('/trips/comment', authCheck.auth, commentValidate.comment, checkCommenterValidation, comment.createComment);
+router.get('/view/request/:id', authCheck.auth, canEditMidleWare.canAccessRequest, getSingleRequest);
+router.patch('/edit/request/:id', authCheck.auth, canEditMidleWare.canAccessRequest, editRequest);
 /**
  * @swagger
  *   "/trips/search?{targetKey}={filterKey}": {

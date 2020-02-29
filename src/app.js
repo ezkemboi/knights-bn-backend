@@ -13,6 +13,7 @@ import users from './routes/users';
 import trips from './routes/trips';
 import translator from './translator';
 import jwt from 'jsonwebtoken';
+import EventEmiter from 'events';
 
 dotenv.config();
 
@@ -71,6 +72,7 @@ app.use(sessions({
     sameSite: true
   }
 }));
+app.set('eventEmiter',EventEmiter);
 app.use(passport.initialize());
 
 app.use(translator);
