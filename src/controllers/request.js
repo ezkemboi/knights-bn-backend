@@ -6,6 +6,7 @@ import isObjectEmpty from '../utils/isObjectEmpty';
 import oneWayTripHelper from '../helpers/oneWayTrip';
 import Sequelize from 'sequelize';
 import { echoNotification } from '../helpers/notificationSender';
+import updateRequest from '../utils/updateRequest';
 
 const {
   Op, where, cast, col
@@ -55,35 +56,30 @@ export default class usersController {
   }
 
   static async createTwoWayTrip(req,res) {
-    try{
+    try{      
       const { id } = req.user; 
       const {
         origin, destination, departureDate, returnDate, reason, accommodation,
       } = req.body;
       
-        const UserData = await models.User.findOne({
+        const userData = await models.User.findOne({
             where : { id: `${id}`,
           }
         });
-          
-
-        if(UserData.lineManager == null){
+        if(userData.lineManager === null){
           return res.status(422).json({
-            status: 422,
+            status: res.statusCode,
             error: 'you currently have no lineManager, please go to update your profile'
           });
         }
-
         const manager = await models.User.findOne({
-          where : { email: `${UserData.lineManager}`,
+          where : { email: `${userData.lineManager}`,
         }
       });
-
       const managerId = manager.dataValues.id;
-
       const request = await models.Request.create({
         managerId,
-        requesterId: id,
+        requesterId: userData.id,
         origin,
         destination,
         status: 'pending',
@@ -91,37 +87,32 @@ export default class usersController {
         departureDate,
         returnDate,
         accommodation,
-        reason}).then((request) => request);
+        reason});
 
+        let isRequestEmpty = isObjectEmpty(request);
+        let { id:requestId, requesterId,type,status} = request;
 
-        if(request){
-
-          const IntendedManager = await models.User.findAll({
-            where: { id: `${request.dataValues.managerId}` },
-          }); 
-          const User = await models.User.findAll({
-            where: { id: `${request.dataValues.requesterId}` },
-          }); 
-
-          sgMail.setApiKey(process.env.BN_API_KEY);
-          const msg = {
-            to: `${manager.dataValues.email}`,
-            from: 'no-reply@brftnomad.com',
-            subject: 'Barefoot Travel Request',
-            text: `${request.dataValues.reason}`,
-            html: `<p><strong>Dear ${manager.dataValues.firstName}<strong>
-            <br><br>
-            <p>This is to inform you that a new request was made by:<p>
-            <br>Name of the requester: ${UserData.FirstName} ${UserData.lastName}
-            <br>Reason: ${request.dataValues.reason}
-            <br>Request Type: ${request.dataValues.type}
-            <br>Destination: ${request.dataValues.destination}
-            <br>DepartureDate: ${request.dataValues.departureDate}
-            <br>ReturnDate: ${request.dataValues.returnDate}
-            <br>Barefoot Nomad Team<br>
-            <br>Thank you<br>
-            </p>`,
-         }
+        if(isRequestEmpty === false){
+            sgMail.setApiKey(process.env.BN_API_KEY);
+            const msg = {
+              to: `${manager.dataValues.email}`,
+              from: 'no-reply@brftnomad.com',
+              subject: 'Barefoot Travel Request',
+              text: `${request.dataValues.reason}`,
+              html: `<p><strong>Dear ${manager.dataValues.firstName}<strong>
+              <br><br>
+              <p>This is to inform you that a new request was made by:<p>
+              <br>Name of the requester: ${userData.FirstName} ${userData.lastName}
+              <br>Reason: ${request.dataValues.reason}
+              <br>Request Type: ${request.dataValues.type}
+              <br>Destination: ${request.dataValues.destination}
+              <br>DepartureDate: ${request.dataValues.departureDate}
+              <br>ReturnDate: ${request.dataValues.returnDate}
+              <br>Barefoot Nomad Team<br>
+              <br>Thank you<br>
+              </p>`,
+           }
+           sgMail.send(msg);
 
          sgMail.send(msg);
 
@@ -133,25 +124,20 @@ export default class usersController {
           type: 'new_request',
           owner:'manager'
         });
-
            echoNotification(req, newNotification, 'new_request', managerId);
-            
-          return res.status(200).json({
-            message: 'request created on success!',
-            origin,
-            destination,
-            departureDate,
-            returnDate,
-            reason,
-            requestId: request.id,
-            requestType: request.type,
-            status: request.status,
-                });
-        }
+          
+          return res.status(201).json({
+              message: 'request created with success!',
+              data: { requestId, requesterId,managerId: manager.id,type,reason, origin, 
+                destination,status, departureDate, returnDate  }
+        });
+      } else return res.status(500).json({
+        error : "can't create the request, retry please!"
+      });
     }
     catch(error){
         return res.status(500).json({
-            error: error,
+            error: error.message,
             });
         }
   }
@@ -307,6 +293,36 @@ export default class usersController {
    }catch(error){
     return res.status(500).json({status:500, error});
    }
+  }
+
+  static async editRequest (req, res) {
+    try{
+      const { requestId } = req.query;
+      const requesterId = req.user.id;     
+      
+      const request = await models.Request.findOne({
+        where : { id : requestId, requesterId }
+      })      
+      if(request){
+        if(request.status === 'pending'){
+          const updatedRequest = await updateRequest(requestId,req.body);   
+          if(updatedRequest) return res.status(200).json({
+            message: 'successfully updated',
+            updatedRequest })
+        } 
+        else return res.status(200).json({
+            error: 'Sorry, the request was closed!'
+          })
+      } else {
+        return res.status(404).json({
+          error: 'request not found!'
+        })
+      }
+    } catch (error) {
+       res.status(500).json({
+        error: error.message
+      })
+    }
   }
   
 }

@@ -1,96 +1,109 @@
-import JoiBase from '@hapi/joi';
-import JoiDate from '@hapi/joi-date';
 import models from '../db/models';
 import getTodayDate from '../utils/getTodayDate';
+import {editRequestSchema, createTwoWayTripSchema} from '../utils/validationSchemas';
+import isObjectEmpty from '../utils/isObjectEmpty';
+
+let conflictingTripRequest;
 
 export default async (req, res, next) => {
 try{
-    
+  let schema;
+  let address;
   const {
-     origin, destination, departureDate, returnDate, reason, accommodation
-  } = req.body;
+    id, origin, destination, departureDate, returnDate, reason, accommodation
+   } = req.body;
+   const todayDate = new Date(getTodayDate());
+   let reqDepartureDate = new Date(departureDate);
+   let reqReturnDate = new Date(returnDate);
 
-  const id = req.user.id;
 
-  const Joi = JoiBase.extend(JoiDate);
-  let schema = Joi.object({
-    origin: Joi.string().required(),
-    destination:Joi.string().required(),
-    departureDate: Joi.date().format('YYYY-MM-DD').required(),
-    returnDate:Joi.date().format('YYYY-MM-DD').required(),
-    reason: Joi.string().max(256).required(),
-    accommodation: Joi.string().required(),
-  })
-  
-    const isOriginDiffersFromDestination = (origin, destination) => {
-      if( origin != destination) return true;
-      else return false;
-    }
-    const isReturnDateValid = (departureTime, returnDate) => (returnDate > departureTime);
-    
-    const isTravelDateValid = async (travelDate) => {
-      const todayDate = new Date(getTodayDate());
-      travelDate = new Date(travelDate);
-      
-      if(travelDate >= todayDate){
-        //check whether travelDate is set after the prev requested trip.
-        const latestRequest = await models.Request.findAll({
+   const urlSections = req.urlPathSections;
+   if(urlSections)
+    address = urlSections[urlSections.length -2 ] || null;
+   
+   if(address === 'edit') {
+    const isRequestEmpty = isObjectEmpty(req.body);    
+    if(isRequestEmpty === true) throw('Empty request');
+    else schema = editRequestSchema;
+    } else schema = createTwoWayTripSchema;
+   
+   const { error } = schema.validate({ origin, destination, departureDate, returnDate, reason, accommodation});
+   
+    if (error) throw error;
+    else if(origin === destination) throw 'similar origin and destination';
+    else if(reqReturnDate < reqDepartureDate) throw 'departureDate > returnDate' ;
+    else if(reqDepartureDate < todayDate) throw 'past departure date' ; 
+    else if(departureDate || returnDate){
+    const requests = await models.Request.findAll({
           where : {
-            requesterId: id
-          },
-          limit: 1,
-          order: [ [ 'returnDate', 'DESC' ]] ,    
-          raw: true
-         })         
-         let latestRequestDate;
-         if(!latestRequest.length) return true;
-         else {           
-           latestRequestDate = new Date(latestRequest[0].departureDate);
-           if(travelDate > latestRequestDate) return true;
-           else return false;
-         }
-      } else return false;
-    }
-  const { error } = schema.validate({ origin, destination, departureDate, returnDate, reason, accommodation});
-  if (error) {
-    return res.status(422).json({
-      status: res.statusCode,
-      error: error.message,
-    });
+            requesterId: req.user.id
+          },raw: true
+        })  
+        let totalRequests = requests.length;
 
-  } else{
-    const condition1 = isOriginDiffersFromDestination(origin,destination);
-    const condition2 = isReturnDateValid(departureDate,returnDate);
-    const condition3 = await isTravelDateValid(departureDate);
-    if(condition1 === true && condition2 === true && condition3 === false){
+      for(let index = 0; index < totalRequests; index ++){
+  
+        if( ((requests[index].departureDate <= reqDepartureDate) && ( reqDepartureDate <= requests[index].returnDate))
+              || ((requests[index].departureDate <= reqReturnDate) && ( reqReturnDate <= requests[index].returnDate))){
+          if(requests[index].type === 'one_way'){
+            let { createdAt, updatedAt, returnDate, cities, ...otherTripInfo} = requests[index];
+            conflictingTripRequest = otherTripInfo;
+          }
+          else if(requests[index].type === 'two_way'){
+            let { createdAt, updatedAt, cities, ...otherTripInfo} = requests[index];
+            conflictingTripRequest = otherTripInfo;
+          }
+          else if(requests[index].type === 'multi_way'){
+            let { createdAt, updatedAt, ...otherTripInfo} = requests[index];
+            conflictingTripRequest = otherTripInfo;
+          }
+          throw 'conflicting trip' ;          
+        }
+      }
+  }
+  next();
+ } catch(error){ 
+    
+  if(error === 'Empty request'){
+    return res.status(200).json({
+      error: 'Empty request body.'
+    })
+  }
+  else if(error.name === 'ValidationError'){
       return res.status(422).json({
-        status: res.statusCode,
-        error: "Departure date should be chosen from today's date and has to not collide with your previous requested trip!",
-      });
-    }
-    if(condition1 === true && condition3 === true && condition2 === false){
-      return res.status(422).json({
-        status: res.statusCode,
-        error: "Returning date has to be the day after your departure's date!",
-      });
-    }
-    if(condition2 === true && condition3 === true && condition1 === false){
-      return res.status(422).json({
+       status: res.statusCode,
+       error: error.message,
+     });
+  }
+  else if(error === 'similar origin and destination'){
+    return res.status(422).json({
         status: res.statusCode,
         error: "Origin has to differ from destination.",
       });
-    }
-    if((condition1 && condition2 && condition3) === true) next();
-    else (error) => {
-    return res.status(422).json({
-      status: res.statusCode,
-      error: error.message,
-    });
-  }
-  } 
-}catch(error){
+}
+else if(error === 'departureDate > returnDate'){
+  return res.status(422).json({
+          status: res.statusCode,
+          error: "Returning date has to be the day after your departure's date!",
+        });
+}
+else if(error === 'past departure date'){
+  return res.status(422).json({
+    status: res.statusCode,
+    error: "Please select travel date starting from today.",
+  });
+}
+else if(error === 'conflicting trip'){
+  return res.status(422).json({
+    status: res.statusCode,
+    error: 'conflicting trip request.',
+    conflictingTripRequest
+  });
+}
+else {
   return res.status(500).json({
     error: error.message,
   });
 }
+  }
 };

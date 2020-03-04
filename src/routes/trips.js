@@ -277,9 +277,9 @@ import validateOneWayTrip from '../middlewares/validateOneWay';
         }
       }
     }
- */
+    */
 
- /**
+/**
  * @swagger
  *  "/trips/comment/": {
       "post": {
@@ -324,13 +324,169 @@ import validateOneWayTrip from '../middlewares/validateOneWay';
     }
  */
 
+/**
+    * @swagger
+    *   "/trips/search?{targetKey}={filterKey}": {
+         "get": {
+           "description": "As a user, I should be able to use the search component\nSo that, I can easily retrieve records from both the request and approval table",
+           "summary": "Search Functionality",
+           "tags": [
+             "Trips"
+           ],
+           "operationId": "SearchFunctionality",
+           "deprecated": false,
+           "produces": [
+             "application/json"
+           ],
+           "parameters": [
+                       {
+               "name": "targetKey",
+               "in": "path",
+               "required": true,
+               "type": "string",
+               "description": "your desired search"
+             },
+                                 {
+               "name": "filterKey",
+               "in": "path",
+               "required": true,
+               "type": "string",
+               "description": "target key"
+             },
+           ],
+           "responses": {
+             "200": {
+               "description": "",
+               "headers": {}
+             }
+           }
+         }
+       }
+    */
 
+/**
+    * @swagger
+    *   "/trips/search?{targetKey}={filterKey}": {
+         "get": {
+           "description": "As a user, I should be able to use the search component\nSo that, I can easily retrieve records from both the request and approval table",
+           "summary": "Search Functionality",
+           "tags": [
+             "Trips"
+           ],
+           "operationId": "SearchFunctionality",
+           "deprecated": false,
+           "produces": [
+             "application/json"
+           ],
+           "parameters": [
+                       {
+               "name": "targetKey",
+               "in": "path",
+               "required": true,
+               "type": "string",
+               "description": "your desired search"
+             },
+                                 {
+               "name": "filterKey",
+               "in": "path",
+               "required": true,
+               "type": "string",
+               "description": "target key"
+             },
+           ],
+           "responses": {
+             "200": {
+               "description": "",
+               "headers": {}
+             }
+           }
+         }
+       }
+    */
+/**
+ * @swagger
+ *  "/trips/edit/": {
+      "patch": {
+        "description": "A user can edit an open request.",
+        "summary": "Edit a request.",
+        "tags": [
+          "Trips"
+        ],
+        "deprecated": false,
+        "produces": [
+          "application/json"
+        ],
+        "consumes": [
+          "application/x-www-form-urlencoded"
+        ],
+        "parameters": [
+          {
+              "name": "requestId",
+              "in": "query",
+              "description": "ID of a request to be updated",
+              "required": true,
+              "type": "integer",
+              "format": "int64"
+          },
+          {
+            "name": "origin",
+            "in": "formData",
+            "type": "string",
+          },
+          {
+            "name": "destination",
+            "in": "formData",
+            "type": "string",
+          },
+          {
+            "name": "departureDate",
+            "in": "formData",
+            "type": "string",
+            "value": "YYYY-MM-DD"
+          },
+          {
+            "name": "returnDate",
+            "in": "formData",
+            "type": "string",
+            "value": "YYYY-MM-DD"
+          },
+          {
+            "name": "accommodation",
+            "in": "formData",
+            "type": "string",
+          },
+          {
+            "name": "reason",
+            "in": "formData",
+            "type": "string",
+          },
+          {
+            "name": "passportNumber",
+            "in": "formData",
+            "type": "string",
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success!",
+          },
+          "422": {
+            "description": "Invalid input",
+          },
+          "404": {
+              "description": "Not found",
+            }
+        }
+      }
+    }
+ */
 import requestsController from '../controllers/searchRequest';
 import validateInputs from '../middlewares/validateReturnTrip';
 import comment from '../controllers/comment.controller';
 import commentValidate from '../middlewares/newComment';
 import checkCommenterValidation from '../middlewares/commenter';
 import requestStatusController from '../controllers/notifications';
+import splitUrl from '../middlewares/splitUrl';
 
 import {
   validateRequestDate, validateCityDate, tripInformation, multicity, checkIfRequestExists
@@ -338,6 +494,11 @@ import {
 
 
 const router = express.Router();
+
+const {
+  createTwoWayTrip, pendingApproval, rejectRequest, createMultiCityRequest, editRequest
+} = requestControllers;
+
 const {
   filterTrips
 } = requestsController;
@@ -351,47 +512,9 @@ router.get('/trips/pendingApproval', authCheck.auth, requestControllers.pendingA
 router.patch('/trips/reject', authCheck.auth, requestControllers.rejectRequest);
 router.post('/trips/request/multicity', authCheck.auth, validateRequestDate, validateCityDate, tripInformation, multicity, checkIfRequestExists, requestControllers.createMultiCityRequest);
 router.post('/trips/comment', authCheck.auth, commentValidate.comment, checkCommenterValidation, comment.createComment);
-/**
- * @swagger
- *   "/trips/search?{targetKey}={filterKey}": {
-      "get": {
-        "description": "As a user, I should be able to use the search component\nSo that, I can easily retrieve records from both the request and approval table",
-        "summary": "Search Functionality",
-        "tags": [
-          "Trips"
-        ],
-        "operationId": "SearchFunctionality",
-        "deprecated": false,
-        "produces": [
-          "application/json"
-        ],
-        "parameters": [
-                    {
-            "name": "targetKey",
-            "in": "path",
-            "required": true,
-            "type": "string",
-            "description": "your desired search"
-          },
-                              {
-            "name": "filterKey",
-            "in": "path",
-            "required": true,
-            "type": "string",
-            "description": "target key"
-          },
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "headers": {}
-          }
-        }
-      }
-    }
- */
 
 router.get('/trips/search', authCheck.auth, filterTrips);
+router.patch('/trips/edit', authCheck.auth, splitUrl, validateInputs, editRequest);
 
 
 /**

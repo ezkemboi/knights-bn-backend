@@ -123,7 +123,7 @@ export default class usersController {
 
     return res
       .status(200)
-      .json({ status: 200, message: 'Successfully login', token });
+      .json({ status: 200, message: 'Successfully login',role: existUser.role , token });
     }catch(error){
       return res.status(500).json({Error: error});
     }
