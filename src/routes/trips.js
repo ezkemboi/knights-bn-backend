@@ -279,7 +279,7 @@ import validateOneWayTrip from '../middlewares/validateOneWay';
     }
  */
 
- /**
+/**
  * @swagger
  *  "/trips/comment/": {
       "post": {
@@ -325,12 +325,56 @@ import validateOneWayTrip from '../middlewares/validateOneWay';
  */
 
 
+/**
+ * @swagger
+ *  "/trips/comment/": {
+      "delete": {
+        "description": "users can delete desired comment",
+        "summary": "delete comment on a request.",
+        "tags": [
+          "Trips"
+        ],
+        "deprecated": false,
+        "produces": [
+          "application/json"
+        ],
+        "consumes": [
+          "application/x-www-form-urlencoded"
+        ],
+        "parameters": [
+          {
+              "name": "commentId",
+              "in": "query",
+              "description": "ID of comment to be delete",
+              "required": true,
+              "type": "integer",
+              "format": "int64"
+          },
+        ],
+        "responses": {
+          "200": {
+            "description": "Comment deleted successfully!",
+          },
+          "404": {
+            "description": "no comment found",
+          },
+          "403": {
+            "description": "comment Already deleted",
+          }
+        }
+      }
+    }
+ */
+
+
 import requestsController from '../controllers/searchRequest';
 import validateInputs from '../middlewares/validateReturnTrip';
 import comment from '../controllers/comment.controller';
 import commentValidate from '../middlewares/newComment';
 import checkCommenterValidation from '../middlewares/commenter';
 import requestStatusController from '../controllers/notifications';
+import checkUserComment from '../middlewares/deleteCommentChecker';
+
 
 import {
   validateRequestDate, validateCityDate, tripInformation, multicity, checkIfRequestExists
@@ -351,6 +395,8 @@ router.get('/trips/pendingApproval', authCheck.auth, requestControllers.pendingA
 router.patch('/trips/reject', authCheck.auth, requestControllers.rejectRequest);
 router.post('/trips/request/multicity', authCheck.auth, validateRequestDate, validateCityDate, tripInformation, multicity, checkIfRequestExists, requestControllers.createMultiCityRequest);
 router.post('/trips/comment', authCheck.auth, commentValidate.comment, checkCommenterValidation, comment.createComment);
+router.delete('/trips/comment', authCheck.auth, checkUserComment, comment.deleteComment);
+
 /**
  * @swagger
  *   "/trips/search?{targetKey}={filterKey}": {

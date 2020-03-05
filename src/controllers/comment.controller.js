@@ -28,4 +28,21 @@ export default class commentController {
                 })
             }
       }
+
+      static async deleteComment(req, res) {
+        
+        const commenterId = req.user.id; 
+        const { commentId } = req.query;
+    
+        await models.Comment.update({ isVisible: false }, {
+          where: { id: commentId },
+          returning: true,
+          plain: true
+        });
+    
+        return res.status(200).json({
+          status: 200,
+          message: 'Comment deleted successfully!'
+        });
+    }
     }

@@ -2,10 +2,11 @@ import models from '../db/models';
 import UserQuery from '../helpers/userQueries';
 
 const checkAuthorizedCommenter = async (req, res, next) => {
+
     const commenterId = req.user.id; 
     const { comment } = req.body;
     const { requestId } = req.query;
-
+    
 
     if(isNaN(requestId)){
         return res.status(422).json({

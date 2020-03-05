@@ -161,7 +161,7 @@ export default class usersController {
       const allMyRequest = await models.Request.findAll({
         where: { requesterId: `${req.user.id}` },
         include: [{
-          model: models.Comment
+          model: models.Comment,
         }]
       });
       if (allMyRequest.length !== 0) {
