@@ -9,6 +9,18 @@ import muliltiRequest from './multicityRequest.test';
 import routeExistance from './app.test';
 import rememberMe from './rememberMe.test';
 import commentTest from './comment.test';
+import {
+  accommodationFacility, missingInfomation,
+  missingRoomInformation, createThesame, wrongUserAccess,
+  getAllAccommodations,
+  getSingleAccommodation,
+  editAccommodations,
+  uploadLocationImage,
+  uploadEmptyImage,
+  editwithEmptyData,
+  notFoundUpdate,
+  notFoungUpload,
+} from './accommodation/createAccommodationFacility.test';
 
 routeExistance();
 signUpTest();
@@ -20,4 +32,17 @@ allRequestTest();
 commentTest();
 rejectRequest();
 rememberMe();
+accommodationFacility();
+missingRoomInformation();
+createThesame();
+missingInfomation();
+getAllAccommodations();
+getSingleAccommodation();
+editAccommodations();
+uploadLocationImage();
+uploadEmptyImage();
+editwithEmptyData();
+notFoundUpdate();
+notFoungUpload();
+wrongUserAccess();
 socialLogin();

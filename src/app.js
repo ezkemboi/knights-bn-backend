@@ -13,6 +13,7 @@ import users from './routes/users';
 import trips from './routes/trips';
 import translator from './translator';
 import jwt from 'jsonwebtoken';
+import accommodationRouter from './routes/accommodation';
 
 dotenv.config();
 
@@ -78,6 +79,7 @@ app.get('/', (req, res) => res.json(res.__('Welcome to Barefoot Nomad')));
 app.use('/api/v1/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/api/v1', users);
 app.use('/api/v1', trips);
+app.use('/api/v1',accommodationRouter);
 
 app.use((req, res) => {
   res.status(404).send({

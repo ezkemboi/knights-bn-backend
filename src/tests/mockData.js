@@ -348,6 +348,27 @@ const mockData = {
         to: '2010-08-31'
       }
     ]
+  },
+  validateDate3: {
+    origin: 'New york',
+    destination: 'East Africa',
+    departureDate: '2020-04-28',
+    returnDate: '2020-09-30',
+    accommodation: 'XYZ campus',
+    type: 'multi_way',
+    reason: 'Reaseach',
+    passportNumber: '12345677',
+    cities: [
+      {
+        from: '2020-05-02',
+        to: '2020-08-31'
+      },
+      {
+        name: 'Nairob',
+        from: '2020-06-02',
+        to: '2020-09-08'
+      }
+    ]
   }
 };
 export default mockData;

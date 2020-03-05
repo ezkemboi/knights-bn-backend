@@ -76,7 +76,57 @@ export const validateRequestDate = (req,res,next) => {
   next();
 };
 
+export const accommodationValidataion = (req,res,next)=>{
+  const accommodationShema = Joi.object({
+    locationName: Joi.string().required(),
+    streetNumber: Joi.string().required(),
+    numberOfRooms: Joi.number().required(),
+    imageOfBuilding: Joi.string().required(),
+    availableRooms: Joi.required(),
+  });
+  const { error } = Joi.validate(req.body, accommodationShema);
+  if(error){
+    return res.status(400).json({
+      status: 400,
+      error: error.details[0].message
+    });
+  }
 
+  next()
+
+}
+
+export const validateRooms = (req,res,next)=>{
+  const roomsSchema = Joi.object({
+    roomName: Joi.string().required(),
+    roomType: Joi.string().required(),
+    price: Joi.string().required(),
+    description: Joi.string().required(),
+  });
+  let roomErrors = [];
+  req.body.availableRooms.forEach((room)=>{
+    const { error } = Joi.validate(room, roomsSchema);
+    if(error !==null){
+      roomErrors.push(error);
+    } 
+  })
+if(roomErrors.length>0){
+  return res.status(400).json({
+    status: 400,
+   error: roomErrors[0].details[0].message
+  });
+}
+next()
+}
+
+export const isExist = (req,res,next)=>{
+  models.Accommodation.findOne({where:{locationName:req.body.locationName}}).then((location)=>{
+    if(location !== null) {
+      return res.status(409).json({status:409, errorMessage:'This accommodation was already created make a new one!'});
+    }
+    next()
+  });
+}
 export const validateCityDate = (req,res,next) => {
   let errors = [];
   if(typeof req.body.cities !== 'undefined'){

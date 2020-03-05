@@ -63,7 +63,21 @@ module.exports = {
     clientId: null,
     createdAt: new Date(),
     updatedAt: new Date()
-  }, {
+  },
+  {
+    firstName: 'traveler',
+    lastName: 'Himbara',
+    gender: 'male',
+    email: 'traveladmin@gmail.com',
+    passport: 'ws846531',
+    password: '$2b$10$l05Anqm8ZkiTZiJPzDtjouorkUjPkzX1MqKau28V2nRHiiX3qpW2e',
+    role: 'traveladmin',
+    method: 'standard',
+    clientId: null,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  },
+  {
     firstName: 'murenzi',
     lastName: 'james',
     gender: 'male',
